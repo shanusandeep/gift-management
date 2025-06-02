@@ -25,11 +25,11 @@ interface SearchFilters {
 const SearchFiltersComponent = () => {
   const [filters, setFilters] = useState<SearchFilters>({
     searchTerm: '',
-    category: '',
-    occasion: '',
-    ageGroup: '',
-    gender: '',
-    status: '',
+    category: 'all',
+    occasion: 'all',
+    ageGroup: 'all',
+    gender: 'all',
+    status: 'all',
     priceRange: [0, 500],
     recipient: '',
     dateFrom: '',
@@ -80,27 +80,27 @@ const SearchFiltersComponent = () => {
     setFilters(prev => ({ ...prev, [key]: value }));
     
     // Update active filters
-    if (value && value !== '' && key !== 'searchTerm' && key !== 'priceRange') {
+    if (value && value !== 'all' && key !== 'searchTerm' && key !== 'priceRange') {
       if (!activeFilters.includes(key)) {
         setActiveFilters(prev => [...prev, key]);
       }
-    } else if (!value || value === '') {
+    } else if (!value || value === 'all') {
       setActiveFilters(prev => prev.filter(filter => filter !== key));
     }
   };
 
   const clearFilter = (filterKey: string) => {
-    handleFilterChange(filterKey as keyof SearchFilters, '');
+    handleFilterChange(filterKey as keyof SearchFilters, 'all');
   };
 
   const clearAllFilters = () => {
     setFilters({
       searchTerm: '',
-      category: '',
-      occasion: '',
-      ageGroup: '',
-      gender: '',
-      status: '',
+      category: 'all',
+      occasion: 'all',
+      ageGroup: 'all',
+      gender: 'all',
+      status: 'all',
       priceRange: [0, 500],
       recipient: '',
       dateFrom: '',
@@ -136,11 +136,11 @@ const SearchFiltersComponent = () => {
       item.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
       item.recipient.toLowerCase().includes(filters.searchTerm.toLowerCase());
     
-    const matchesCategory = !filters.category || item.category.toLowerCase() === filters.category.toLowerCase();
-    const matchesOccasion = !filters.occasion || item.occasion.toLowerCase() === filters.occasion.toLowerCase();
-    const matchesAgeGroup = !filters.ageGroup || item.ageGroup === filters.ageGroup;
-    const matchesGender = !filters.gender || item.gender === filters.gender;
-    const matchesStatus = !filters.status || item.status === filters.status;
+    const matchesCategory = filters.category === 'all' || item.category.toLowerCase() === filters.category.toLowerCase();
+    const matchesOccasion = filters.occasion === 'all' || item.occasion.toLowerCase() === filters.occasion.toLowerCase();
+    const matchesAgeGroup = filters.ageGroup === 'all' || item.ageGroup === filters.ageGroup;
+    const matchesGender = filters.gender === 'all' || item.gender === filters.gender;
+    const matchesStatus = filters.status === 'all' || item.status === filters.status;
     const matchesRecipient = !filters.recipient || item.recipient.toLowerCase().includes(filters.recipient.toLowerCase());
     const matchesPrice = item.price >= filters.priceRange[0] && item.price <= filters.priceRange[1];
 
@@ -196,7 +196,7 @@ const SearchFiltersComponent = () => {
                     <SelectValue placeholder="All categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All categories</SelectItem>
+                    <SelectItem value="all">All categories</SelectItem>
                     <SelectItem value="toys">Toys</SelectItem>
                     <SelectItem value="electronics">Electronics</SelectItem>
                     <SelectItem value="clothing">Clothing</SelectItem>
@@ -214,7 +214,7 @@ const SearchFiltersComponent = () => {
                     <SelectValue placeholder="All occasions" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All occasions</SelectItem>
+                    <SelectItem value="all">All occasions</SelectItem>
                     <SelectItem value="birthday">Birthday</SelectItem>
                     <SelectItem value="anniversary">Anniversary</SelectItem>
                     <SelectItem value="wedding">Wedding</SelectItem>
@@ -232,7 +232,7 @@ const SearchFiltersComponent = () => {
                     <SelectValue placeholder="All age groups" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All age groups</SelectItem>
+                    <SelectItem value="all">All age groups</SelectItem>
                     <SelectItem value="child">Child (0-12)</SelectItem>
                     <SelectItem value="teenager">Teenager (13-19)</SelectItem>
                     <SelectItem value="adult">Adult (20-64)</SelectItem>
@@ -248,7 +248,7 @@ const SearchFiltersComponent = () => {
                     <SelectValue placeholder="All genders" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All genders</SelectItem>
+                    <SelectItem value="all">All genders</SelectItem>
                     <SelectItem value="male">Male</SelectItem>
                     <SelectItem value="female">Female</SelectItem>
                     <SelectItem value="unisex">Unisex</SelectItem>
@@ -263,7 +263,7 @@ const SearchFiltersComponent = () => {
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All statuses</SelectItem>
+                    <SelectItem value="all">All statuses</SelectItem>
                     <SelectItem value="available">Available</SelectItem>
                     <SelectItem value="purchased">Purchased</SelectItem>
                     <SelectItem value="wrapped">Wrapped</SelectItem>
