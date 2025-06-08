@@ -9,7 +9,154 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      events: {
+        Row: {
+          created_at: string | null
+          event_date: string
+          event_type: string
+          id: string
+          notes: string | null
+          recipient_id: string | null
+          recurring: boolean | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_date: string
+          event_type: string
+          id?: string
+          notes?: string | null
+          recipient_id?: string | null
+          recurring?: boolean | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_date?: string
+          event_type?: string
+          id?: string
+          notes?: string | null
+          recipient_id?: string | null
+          recurring?: boolean | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "recipients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gifts: {
+        Row: {
+          age_group: string | null
+          category: string | null
+          created_at: string | null
+          date_given: string | null
+          gender: string | null
+          id: string
+          image_url: string | null
+          name: string
+          notes: string | null
+          occasion: string | null
+          price: number | null
+          recipient_id: string | null
+          source: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          age_group?: string | null
+          category?: string | null
+          created_at?: string | null
+          date_given?: string | null
+          gender?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          notes?: string | null
+          occasion?: string | null
+          price?: number | null
+          recipient_id?: string | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          age_group?: string | null
+          category?: string | null
+          created_at?: string | null
+          date_given?: string | null
+          gender?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          notes?: string | null
+          occasion?: string | null
+          price?: number | null
+          recipient_id?: string | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gifts_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "recipients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipients: {
+        Row: {
+          anniversary: string | null
+          birthday: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          preferences: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          anniversary?: string | null
+          birthday?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          preferences?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          anniversary?: string | null
+          birthday?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          preferences?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
