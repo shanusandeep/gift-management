@@ -7,88 +7,84 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { PlusCircle, Calendar, Gift, Edit, Phone, Mail } from "lucide-react";
+import { PlusCircle, Calendar, Gift, Edit, Phone, Mail, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
-interface Recipient {
-  id: string;
-  name: string;
-  birthday?: string;
-  anniversary?: string;
-  preferences: string;
-  contactInfo?: string;
-  email?: string;
-  phone?: string;
-  giftHistory: Array<{
-    giftName: string;
-    occasion: string;
-    date: string;
-    price: number;
-  }>;
-}
+import { useRecipients } from '@/hooks/useRecipients';
+import { useGifts } from '@/hooks/useGifts';
 
 const RecipientManager = () => {
-  const [recipients, setRecipients] = useState<Recipient[]>([
-    {
-      id: '1',
-      name: 'Sarah Johnson',
-      birthday: '1995-06-15',
-      preferences: 'Loves tech gadgets, coffee, and reading sci-fi novels',
-      email: 'sarah@email.com',
-      phone: '+1-555-0123',
-      giftHistory: [
-        { giftName: 'Wireless Headphones', occasion: 'Birthday', date: '2024-06-15', price: 89 },
-        { giftName: 'Coffee Subscription', occasion: 'Christmas', date: '2023-12-25', price: 45 }
-      ]
-    },
-    {
-      id: '2',
-      name: 'Tom Wilson',
-      birthday: '2015-03-22',
-      preferences: 'LEGO sets, video games, superheroes',
-      giftHistory: [
-        { giftName: 'LEGO Building Set', occasion: 'Birthday', date: '2024-03-22', price: 45 }
-      ]
-    },
-    {
-      id: '3',
-      name: 'Mom & Dad',
-      anniversary: '1985-08-10',
-      preferences: 'Home decor, wine, travel experiences',
-      giftHistory: [
-        { giftName: 'Wine Tasting Experience', occasion: 'Anniversary', date: '2023-08-10', price: 150 }
-      ]
-    }
-  ]);
-
-  const [newRecipient, setNewRecipient] = useState<Partial<Recipient>>({});
+  const { recipients, loading: recipientsLoading, addRecipient, updateRecipient, deleteRecipient } = useRecipients();
+  const { gifts, loading: giftsLoading } = useGifts();
   const [isAddingRecipient, setIsAddingRecipient] = useState(false);
-  const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(null);
+  const [editingRecipient, setEditingRecipient] = useState(null);
+  const [selectedRecipient, setSelectedRecipient] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    birthday: '',
+    anniversary: '',
+    email: '',
+    phone: '',
+    preferences: ''
+  });
 
-  const handleAddRecipient = () => {
-    if (!newRecipient.name) {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
       toast.error("Please enter a name");
       return;
     }
 
-    const recipient: Recipient = {
-      id: Date.now().toString(),
-      name: newRecipient.name || '',
-      birthday: newRecipient.birthday,
-      anniversary: newRecipient.anniversary,
-      preferences: newRecipient.preferences || '',
-      email: newRecipient.email,
-      phone: newRecipient.phone,
-      giftHistory: []
-    };
+    try {
+      const recipientData = {
+        ...formData,
+        birthday: formData.birthday || null,
+        anniversary: formData.anniversary || null,
+        email: formData.email || null,
+        phone: formData.phone || null,
+        preferences: formData.preferences || null
+      };
 
-    setRecipients([...recipients, recipient]);
-    setNewRecipient({});
-    setIsAddingRecipient(false);
-    toast.success("Recipient added successfully!");
+      if (editingRecipient) {
+        await updateRecipient(editingRecipient.id, recipientData);
+        setEditingRecipient(null);
+      } else {
+        await addRecipient(recipientData);
+      }
+      
+      setFormData({
+        name: '',
+        birthday: '',
+        anniversary: '',
+        email: '',
+        phone: '',
+        preferences: ''
+      });
+      setIsAddingRecipient(false);
+    } catch (error) {
+      console.error('Error saving recipient:', error);
+    }
   };
 
-  const getUpcomingEvent = (recipient: Recipient) => {
+  const handleEdit = (recipient) => {
+    setEditingRecipient(recipient);
+    setFormData({
+      name: recipient.name || '',
+      birthday: recipient.birthday || '',
+      anniversary: recipient.anniversary || '',
+      email: recipient.email || '',
+      phone: recipient.phone || '',
+      preferences: recipient.preferences || ''
+    });
+    setIsAddingRecipient(true);
+  };
+
+  const handleDelete = async (recipientId) => {
+    if (window.confirm('Are you sure you want to delete this recipient? This will also remove them from any associated gifts.')) {
+      await deleteRecipient(recipientId);
+    }
+  };
+
+  const getUpcomingEvent = (recipient) => {
     const today = new Date();
     const currentYear = today.getFullYear();
     
@@ -126,33 +122,51 @@ const RecipientManager = () => {
     };
   };
 
+  const getRecipientGifts = (recipientId) => {
+    return gifts.filter(gift => gift.recipient_id === recipientId);
+  };
+
+  if (recipientsLoading || giftsLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+        <span className="ml-2 text-emerald-600">Loading recipients...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Recipient Management</h2>
-          <p className="text-gray-600">Manage people you give gifts to</p>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+            Recipient Management
+          </h2>
+          <p className="text-gray-600 mt-2">Manage people you give gifts to</p>
         </div>
         <Dialog open={isAddingRecipient} onOpenChange={setIsAddingRecipient}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white">
               <PlusCircle className="h-4 w-4 mr-2" />
               Add Recipient
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Add New Recipient</DialogTitle>
-              <DialogDescription>Add someone new to your gift list</DialogDescription>
+              <DialogTitle>{editingRecipient ? 'Edit Recipient' : 'Add New Recipient'}</DialogTitle>
+              <DialogDescription>
+                {editingRecipient ? 'Update recipient information' : 'Add someone new to your gift list'}
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <form onSubmit={handleSubmit} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
                 <Input
                   id="name"
-                  value={newRecipient.name || ''}
-                  onChange={(e) => setNewRecipient({...newRecipient, name: e.target.value})}
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
                   placeholder="Enter full name"
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -160,8 +174,8 @@ const RecipientManager = () => {
                 <Input
                   id="birthday"
                   type="date"
-                  value={newRecipient.birthday || ''}
-                  onChange={(e) => setNewRecipient({...newRecipient, birthday: e.target.value})}
+                  value={formData.birthday}
+                  onChange={(e) => setFormData({...formData, birthday: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
@@ -169,8 +183,8 @@ const RecipientManager = () => {
                 <Input
                   id="anniversary"
                   type="date"
-                  value={newRecipient.anniversary || ''}
-                  onChange={(e) => setNewRecipient({...newRecipient, anniversary: e.target.value})}
+                  value={formData.anniversary}
+                  onChange={(e) => setFormData({...formData, anniversary: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
@@ -178,8 +192,8 @@ const RecipientManager = () => {
                 <Input
                   id="email"
                   type="email"
-                  value={newRecipient.email || ''}
-                  onChange={(e) => setNewRecipient({...newRecipient, email: e.target.value})}
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
                   placeholder="email@example.com"
                 />
               </div>
@@ -187,8 +201,8 @@ const RecipientManager = () => {
                 <Label htmlFor="phone">Phone</Label>
                 <Input
                   id="phone"
-                  value={newRecipient.phone || ''}
-                  onChange={(e) => setNewRecipient({...newRecipient, phone: e.target.value})}
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
                   placeholder="+1-555-0123"
                 />
               </div>
@@ -196,90 +210,145 @@ const RecipientManager = () => {
                 <Label htmlFor="preferences">Preferences & Interests</Label>
                 <Textarea
                   id="preferences"
-                  value={newRecipient.preferences || ''}
-                  onChange={(e) => setNewRecipient({...newRecipient, preferences: e.target.value})}
+                  value={formData.preferences}
+                  onChange={(e) => setFormData({...formData, preferences: e.target.value})}
                   placeholder="What do they like? Hobbies, favorite colors, interests..."
                   rows={3}
                 />
               </div>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsAddingRecipient(false)}>Cancel</Button>
-              <Button onClick={handleAddRecipient}>Add Recipient</Button>
-            </div>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  onClick={() => {
+                    setIsAddingRecipient(false);
+                    setEditingRecipient(null);
+                    setFormData({
+                      name: '',
+                      birthday: '',
+                      anniversary: '',
+                      email: '',
+                      phone: '',
+                      preferences: ''
+                    });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white">
+                  {editingRecipient ? 'Update Recipient' : 'Add Recipient'}
+                </Button>
+              </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {recipients.map((recipient) => {
-          const upcomingEvent = getUpcomingEvent(recipient);
-          
-          return (
-            <Card 
-              key={recipient.id} 
-              className="hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => setSelectedRecipient(recipient)}
+      {recipients.length === 0 ? (
+        <Card className="border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+          <CardContent className="p-8 text-center">
+            <Gift className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">No recipients yet</h3>
+            <p className="text-gray-500 mb-4">Start by adding people you give gifts to</p>
+            <Button 
+              onClick={() => setIsAddingRecipient(true)}
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
             >
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{recipient.name}</CardTitle>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Your First Recipient
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {recipients.map((recipient) => {
+            const upcomingEvent = getUpcomingEvent(recipient);
+            const recipientGifts = getRecipientGifts(recipient.id);
+            
+            return (
+              <Card 
+                key={recipient.id} 
+                className="hover:shadow-lg transition-shadow cursor-pointer border-0 shadow-lg bg-white/70 backdrop-blur-sm group"
+                onClick={() => setSelectedRecipient(recipient)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{recipient.name}</CardTitle>
+                      {upcomingEvent && (
+                        <CardDescription>
+                          {upcomingEvent.type} in {upcomingEvent.daysUntil} days
+                        </CardDescription>
+                      )}
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(recipient);
+                        }}
+                        className="h-8 w-8 p-0 hover:bg-blue-100"
+                      >
+                        <Edit className="h-4 w-4 text-blue-600" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(recipient.id);
+                        }}
+                        className="h-8 w-8 p-0 hover:bg-red-100"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
                     {upcomingEvent && (
-                      <CardDescription>
-                        {upcomingEvent.type} in {upcomingEvent.daysUntil} days
-                      </CardDescription>
+                      <div className="flex items-center justify-between p-2 bg-emerald-50 rounded">
+                        <span className="text-sm font-medium">
+                          {upcomingEvent.type === 'birthday' ? '🎂' : '💕'} Next {upcomingEvent.type}
+                        </span>
+                        <Badge variant="default" className="bg-emerald-500">{upcomingEvent.daysUntil} days</Badge>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Gifts given:</span>
+                      <span className="font-medium">{recipientGifts.length}</span>
+                    </div>
+                    
+                    {recipient.email && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Mail className="h-3 w-3 mr-1" />
+                        <span className="truncate">{recipient.email}</span>
+                      </div>
+                    )}
+                    
+                    {recipient.phone && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Phone className="h-3 w-3 mr-1" />
+                        {recipient.phone}
+                      </div>
+                    )}
+                    
+                    {recipient.preferences && (
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {recipient.preferences}
+                      </p>
                     )}
                   </div>
-                  <Button variant="ghost" size="sm" onClick={(e) => {
-                    e.stopPropagation();
-                    // Edit functionality
-                  }}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {upcomingEvent && (
-                    <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
-                      <span className="text-sm font-medium">
-                        {upcomingEvent.type === 'birthday' ? '🎂' : '💕'} Next {upcomingEvent.type}
-                      </span>
-                      <Badge variant="default">{upcomingEvent.daysUntil} days</Badge>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Gifts given:</span>
-                    <span className="font-medium">{recipient.giftHistory.length}</span>
-                  </div>
-                  
-                  {recipient.email && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Mail className="h-3 w-3 mr-1" />
-                      {recipient.email}
-                    </div>
-                  )}
-                  
-                  {recipient.phone && (
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Phone className="h-3 w-3 mr-1" />
-                      {recipient.phone}
-                    </div>
-                  )}
-                  
-                  {recipient.preferences && (
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {recipient.preferences}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* Recipient Detail Dialog */}
       <Dialog open={!!selectedRecipient} onOpenChange={() => setSelectedRecipient(null)}>
@@ -309,6 +378,18 @@ const RecipientManager = () => {
                       </p>
                     </div>
                   )}
+                  {selectedRecipient.email && (
+                    <div>
+                      <Label className="text-sm font-medium">Email</Label>
+                      <p className="text-sm text-gray-600">{selectedRecipient.email}</p>
+                    </div>
+                  )}
+                  {selectedRecipient.phone && (
+                    <div>
+                      <Label className="text-sm font-medium">Phone</Label>
+                      <p className="text-sm text-gray-600">{selectedRecipient.phone}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Preferences */}
@@ -323,14 +404,17 @@ const RecipientManager = () => {
                 <div>
                   <Label className="text-sm font-medium">Gift History</Label>
                   <div className="mt-2 space-y-2">
-                    {selectedRecipient.giftHistory.length > 0 ? (
-                      selectedRecipient.giftHistory.map((gift, index) => (
-                        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                    {getRecipientGifts(selectedRecipient.id).length > 0 ? (
+                      getRecipientGifts(selectedRecipient.id).map((gift) => (
+                        <div key={gift.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
                           <div>
-                            <p className="font-medium">{gift.giftName}</p>
-                            <p className="text-sm text-gray-600">{gift.occasion} • {new Date(gift.date).toLocaleDateString()}</p>
+                            <p className="font-medium">{gift.name}</p>
+                            <p className="text-sm text-gray-600">
+                              {gift.occasion && `${gift.occasion} • `}
+                              {gift.date_given ? new Date(gift.date_given).toLocaleDateString() : 'Date not set'}
+                            </p>
                           </div>
-                          <span className="font-medium">${gift.price}</span>
+                          {gift.price && <span className="font-medium">${gift.price}</span>}
                         </div>
                       ))
                     ) : (
